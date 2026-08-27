@@ -39,6 +39,11 @@ spec:
               value: "4008"
             - name: HOSTNAME
               value: "0.0.0.0"
+            # Server-side fetches go straight to the backend Service inside the cluster
+            - name: API_URL
+              value: "http://rick-morty-backend.rick-morty.svc.cluster.local"
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://api.rick-morty.welt-on.com"
           resources:
             requests:
               cpu: "50m"

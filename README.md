@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Рик и Морти — база данных
 
-## Getting Started
+Веб-приложение для поиска и просмотра персонажей, эпизодов и локаций мультсериала «Рик и Морти».
+Фронтенд на Next.js обращается только к собственному бэкенду
+([rick-morty-backend](../rick-morty-backend)), который уже работает с внешним
+[The Rick and Morty API](https://rickandmortyapi.com) и Gemini.
 
-First, run the development server:
+Прод: `https://rick-morty.welt-on.com` (API: `https://api.rick-morty.welt-on.com`, Swagger на `/api/docs`).
+
+## Что умеет
+
+- **Поиск** на главной: один запрос ищет сразу по персонажам, эпизодам и локациям; результаты обновляются
+  по мере ввода (debounce 300 мс), состояние живёт в URL (`/?q=morty`) — ссылку можно отправить, «назад» работает.
+- **Каталоги** с фильтрами и пагинацией: персонажи (имя, статус, пол, вид), эпизоды (название, код `S01E01`),
+  локации (название, тип, измерение). Фильтры — обычная GET-форма: работает даже без JavaScript.
+- **Детальные страницы**: персонаж (факты, ссылки на локации, все эпизоды, AI-досье), эпизод (все персонажи),
+  локация (все жители).
+- **Тёмная/светлая тема** с сохранением выбора (`next-themes`, по умолчанию — системная).
+- **Скелетоны** на каждом роуте (`loading.tsx`) и внутри страниц (`Suspense`), включая AI-блок.
+- **AI-досье** персонажа (Gemini через бэкенд) — по кнопке, с кэшем на сервере и честным дисклеймером.
+
+## Стек и почему он
+
+| Технология | Зачем |
+|---|---|
+| **Next.js 16 (App Router), React 19** | Серверные компоненты: данные запрашиваются на сервере, HTML приходит готовым, стриминг со скелетонами бесплатно. Роутинг, `loading/error/not-found` — файловые соглашения. |
+| **TypeScript** | Контракт с бэкендом — общие типы (`src/lib/types.ts` ↔ `src/common/types.ts` в бэке). |
+| **Tailwind CSS 4** | Токены темы как CSS-переменные в `@theme`, `dark:`-вариант через класс; без UI-кита — все компоненты свои и маленькие. |
+| **next-themes** | Переключение темы без «вспышки» и с localStorage — 1 зависимость вместо своего скрипта. |
+| **NestJS + Prisma + Postgres (бэкенд)** | Требование задания — вызывать внешние API со своей серверной части; см. README бэкенда. |
+| **Docker + k3s + GitHub Actions** | Свой сервер и готовый пайплайн из других проектов автора. |
+
+## Запуск локально
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. бэкенд (см. его README) — http://localhost:4009
+# 2. фронтенд
+npm install
+cp .env.example .env            # NEXT_PUBLIC_API_URL=http://localhost:4009
+npm run dev                     # http://localhost:4008
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Проверка: `npm run lint`, `npm run build`. Продакшен-сборка — `output: "standalone"` (`node .next/standalone/server.js`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Переменные: `NEXT_PUBLIC_API_URL` — адрес API для браузера (инлайнится при сборке); `API_URL` — адрес для
+серверных запросов (в кластере это внутренний Service `http://rick-morty-backend.rick-morty.svc.cluster.local`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Структура
 
-## Learn More
+```
+src/app/                      только роуты и layout
+  page.tsx                    поиск (hero + результаты в Suspense) / каталоги и главные герои без запроса
+  characters/  episodes/  locations/
+    page.tsx                  список: searchParams → api → фильтры + сетка + пагинация
+    loading.tsx               скелетон, повторяющий геометрию списка
+    [id]/page.tsx             деталка (+ loading, not-found)
+  error.tsx, not-found.tsx    границы ошибок
+src/components/
+  ui/                         Button, Input/Select/Field, Badge, Skeleton, Pagination, SectionHeading, EmptyState
+  layout/                     Header (навигация + тема), Footer
+  characters/ episodes/ locations/   карточки, сетки/списки, скелетоны, формы фильтров
+  search/                     SearchBar (client), SearchResults (server), CatalogLinks
+  ai/                         AiDescription (client): idle → loading → text / unavailable / error
+  theme/                      ThemeProvider, ThemeToggle
+src/lib/
+  api.ts                      единственное место с fetch; ApiError; buildQuery
+  types.ts                    контракт API
+  utils.ts                    cn, парсинг searchParams, коды записей, склонения
+```
 
-To learn more about Next.js, take a look at the following resources:
+Принципы: серверные компоненты по умолчанию, `"use client"` только для интерактива (поиск, тема, AI-кнопка);
+состояние списков — в URL, глобальных сторов нет; данные приходят в форме, удобной UI (бэкенд — BFF).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Процесс проектирования и разработки
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Контракт API** зафиксирован первым (типы + эндпоинты), чтобы фронт и бэк писались параллельно.
+2. **Дизайн-план до кода**: подача «база данных Цитадели» — каждая сущность оформлена как учётная запись
+   с моно-кодом (`#0001`, `S01E01`, `C-137`), статус — сканерная точка (живой — пульсирует, с учётом
+   `prefers-reduced-motion`). Шрифты: Unbounded (заголовки), Onest (текст), JetBrains Mono (коды) — все с кириллицей.
+   Две палитры: тёмная «чернила и бирюза» с портальным зелёным, светлая тёплая бумага с более тёмным зелёным
+   ради контраста. Сигнатура — большое поле-«сканер» на главной; всё остальное намеренно тихое.
+3. **Фундамент** (типы, api, токены, layout, UI-примитивы) → каталоги → поиск → тема → AI → проверка в браузере
+   (скриншоты десктопа и мобильного, консоль без ошибок, статусы всех роутов).
 
-## Deploy on Vercel
+## Подходы, которые стоит отметить
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Фильтры без JavaScript**: GET-форма с `defaultValue` из URL и `key` для ремаунта при навигации. Просто, доступно,
+  индексируемо.
+- **Поиск с URL-состоянием и без гонок**: `SearchBar` синхронизируется с URL только при внешней навигации
+  (back/forward) через `lastPushed`-ref, поэтому ввод никогда не перетирается устаревшим значением.
+- **Стриминг**: hero главной отдаётся мгновенно, результаты поиска — в `Suspense` с `key={q}`, так что при
+  смене запроса показывается скелетон, а не старые данные.
+- **Ошибки как состояния UI**: 404 → `notFound()` и своя страница на каждом ресурсе; недоступный бэкенд →
+  `error.tsx` с «Повторить»; 503 от AI → спокойное «отключено на сервере» без кнопки повтора.
+- **`next/image`** для аватаров с `remotePatterns`, кэш картинок в `emptyDir` (в контейнере read-only FS).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Компромиссы
+
+- **Статус ответа на несуществующий id — 200, а не 404.** Из-за `loading.tsx` HTML стримится сразу, и к моменту
+  `notFound()` заголовки уже ушли (в Next 16 стримятся и метаданные). Выбрал скелетоны — они важнее для UX;
+  страница «не найдено» рендерится корректно и помечена `noindex`.
+- **20 элементов на страницу** — размер задаёт внешний API.
+- **Данные не переводятся** («Alive», «Human», «Earth (C-137)») — интерфейс на русском, данные как в источнике;
+  поиск тоже по английским названиям, об этом сказано в пустом состоянии.
+- **Без своего UI-кита и без библиотеки иконок** — меньше зависимостей, но и меньше готовых компонентов.
+- **Без e2e-тестов на фронте** — проверка руками в браузере + `next build` в CI; юнит-тесты только на бэкенде.
+
+## Известные проблемы
+
+- См. выше про код ответа 404 при стриминге.
+- Первый вызов AI-досье для персонажа занимает 5–15 с; при исчерпании квоты Gemini приходит 502 с кнопкой «Повторить».
+- `next dev` при первом открытии страницы компилирует её ~1–3 с — это не отражает прод.
+
+## Деплой
+
+`push` в `main` → GitHub Actions: сборка образа (build-arg `NEXT_PUBLIC_API_URL`) → registry → `kubectl apply -f k8s/prod/`
+→ ожидание rollout. Манифесты: namespace `rick-morty`, deployment (non-root, read-only FS), ClusterIP, ingress с TLS
+(cert-manager) на `rick-morty.welt-on.com`.
