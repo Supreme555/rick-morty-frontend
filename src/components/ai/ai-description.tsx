@@ -33,12 +33,9 @@ export function AiDescription({ characterId, name }: { characterId: number; name
       className="rounded-card border border-line border-l-2 border-l-accent bg-panel-2 p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 id="ai-title" className="font-display text-sm font-semibold">
-            Досье от ИИ
-          </h2>
-          <p className="mt-0.5 text-xs text-muted">Gemini составит описание по данным из базы.</p>
-        </div>
+        <h2 id="ai-title" className="font-display text-sm font-semibold">
+          Досье от ИИ
+        </h2>
         {(state.kind === "idle" || state.kind === "error") && (
           <Button variant="secondary" onClick={load}>
             {state.kind === "error" ? "Повторить" : `Рассказать о ${name.split(" ")[0]}`}
@@ -63,9 +60,6 @@ export function AiDescription({ characterId, name }: { characterId: number; name
               {p}
             </p>
           ))}
-          <p className="mt-4 font-mono text-[11px] text-muted">
-            {state.data.model} · {state.data.cached ? "из кэша" : "сгенерировано только что"} · может ошибаться в деталях сюжета
-          </p>
         </div>
       )}
 
