@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw Meshy exports (80-130 MB each) — optimized copies live in public/models
+/public/3d-models/
