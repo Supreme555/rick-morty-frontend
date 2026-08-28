@@ -88,22 +88,33 @@ function Floor({ dark, animate }: { dark: boolean; animate: boolean }) {
   );
 }
 
-/** The whole composition slowly sways; the portal light breathes. */
+const PORTAL_SCALE = 1.3;
+
+/** The whole composition slowly sways; the portal spins, pulses and its light breathes. */
 function Composition({ animate, dark }: { animate: boolean; dark: boolean }) {
   const group = useRef<Group>(null);
+  const portal = useRef<Group>(null);
   const light = useRef<{ intensity: number }>(null);
 
   useFrame(({ clock }) => {
     if (!animate) return;
     const t = clock.getElapsedTime();
     if (group.current) group.current.rotation.y = Math.sin(t * 0.25) * 0.12;
+    if (portal.current) {
+      // Swirl: steady spin with a slow wobble, plus a gentle pulse in sync with the light.
+      portal.current.rotation.z = -t * 0.35 + Math.sin(t * 0.9) * 0.08;
+      const pulse = 1 + Math.sin(t * 2.2) * 0.025;
+      portal.current.scale.setScalar(PORTAL_SCALE * pulse);
+    }
     if (light.current) light.current.intensity = 6 + Math.sin(t * 2.2) * 1.5;
   });
 
   return (
     <group ref={group} position={[0, -0.1, 0]}>
       <Floor dark={dark} animate={animate} />
-      <Model url={MODELS.portal} position={[0, 0.27, -0.7]} scale={1.3} />
+      <group ref={portal} position={[0, 0.27, -0.7]} scale={PORTAL_SCALE}>
+        <Model url={MODELS.portal} position={[0, 0, 0]} />
+      </group>
       <pointLight ref={light} position={[0, 0.2, -0.2]} color="#97ce4c" intensity={6} distance={5} decay={2} />
 
       <Float speed={animate ? 1.6 : 0} rotationIntensity={0.08} floatIntensity={0.12}>
