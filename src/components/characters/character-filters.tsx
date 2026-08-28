@@ -35,7 +35,7 @@ export function CharacterFilters({ values }: { values: CharacterFilterValues }) 
       className="mb-6 grid gap-3 rounded-card border border-line bg-panel p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto] lg:items-end"
     >
       <Field label="Имя" htmlFor="f-name">
-        <Input id="f-name" name="name" defaultValue={values.name} placeholder="Rick, Morty, Birdperson…" />
+        <Input id="f-name" name="name" defaultValue={values.name} maxLength={100} placeholder="Rick, Morty, Birdperson…" />
       </Field>
       <Field label="Статус" htmlFor="f-status">
         <Select id="f-status" name="status" defaultValue={values.status}>
@@ -56,7 +56,7 @@ export function CharacterFilters({ values }: { values: CharacterFilterValues }) 
         </Select>
       </Field>
       <Field label="Вид" htmlFor="f-species">
-        <Input id="f-species" name="species" defaultValue={values.species} placeholder="Human, Alien…" />
+        <Input id="f-species" name="species" defaultValue={values.species} maxLength={100} placeholder="Human, Alien…" />
       </Field>
       <div className="flex items-center gap-2">
         <Button type="submit">Применить</Button>

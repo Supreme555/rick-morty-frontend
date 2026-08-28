@@ -18,13 +18,13 @@ export function LocationFilters({ values }: { values: LocationFilterValues }) {
       className="mb-6 grid gap-3 rounded-card border border-line bg-panel p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_auto] lg:items-end"
     >
       <Field label="Название" htmlFor="f-name">
-        <Input id="f-name" name="name" defaultValue={values.name} placeholder="Earth, Citadel…" />
+        <Input id="f-name" name="name" defaultValue={values.name} maxLength={100} placeholder="Earth, Citadel…" />
       </Field>
       <Field label="Тип" htmlFor="f-type">
-        <Input id="f-type" name="type" defaultValue={values.type} placeholder="Planet, Space station…" />
+        <Input id="f-type" name="type" defaultValue={values.type} maxLength={100} placeholder="Planet, Space station…" />
       </Field>
       <Field label="Измерение" htmlFor="f-dimension">
-        <Input id="f-dimension" name="dimension" defaultValue={values.dimension} placeholder="C-137" />
+        <Input id="f-dimension" name="dimension" defaultValue={values.dimension} maxLength={100} placeholder="C-137" />
       </Field>
       <div className="flex items-center gap-2">
         <Button type="submit">Применить</Button>

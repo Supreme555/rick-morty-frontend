@@ -77,6 +77,7 @@ export function SearchBar({ initialQuery }: { initialQuery: string }) {
         name="q"
         type="search"
         autoComplete="off"
+        maxLength={100}
         enterKeyHint="search"
         value={value}
         onChange={(e) => {

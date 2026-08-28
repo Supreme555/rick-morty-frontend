@@ -52,7 +52,7 @@ export function AiDescription({ characterId, name }: { characterId: number; name
           <Skeleton className="h-3.5 w-11/12" />
           <Skeleton className="h-3.5 w-4/5" />
           <Skeleton className="h-3.5 w-2/3" />
-          <p className="pt-1 font-mono text-[11px] text-muted">Обычно занимает 5–15 секунд…</p>
+          <p className="pt-1 font-mono text-[11px] text-muted">Обычно занимает 10–25 секунд…</p>
         </div>
       )}
 

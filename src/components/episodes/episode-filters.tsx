@@ -17,10 +17,10 @@ export function EpisodeFilters({ values }: { values: EpisodeFilterValues }) {
       className="mb-6 grid gap-3 rounded-card border border-line bg-panel p-4 sm:grid-cols-[1.6fr_1fr_auto] sm:items-end"
     >
       <Field label="Название" htmlFor="f-name">
-        <Input id="f-name" name="name" defaultValue={values.name} placeholder="Pilot, Rixty Minutes…" />
+        <Input id="f-name" name="name" defaultValue={values.name} maxLength={100} placeholder="Pilot, Rixty Minutes…" />
       </Field>
       <Field label="Код эпизода" htmlFor="f-episode">
-        <Input id="f-episode" name="episode" defaultValue={values.episode} placeholder="S01E01 или S03" className="font-mono" />
+        <Input id="f-episode" name="episode" defaultValue={values.episode} maxLength={20} placeholder="S01E01 или S03" className="font-mono" />
       </Field>
       <div className="flex items-center gap-2">
         <Button type="submit">Применить</Button>
