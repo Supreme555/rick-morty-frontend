@@ -1,9 +1,10 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, PresentationControls, useGLTF, useProgress } from "@react-three/drei";
-import { Suspense, useRef, useSyncExternalStore } from "react";
-import type { Group } from "three";
+import { ContactShadows, Float, PresentationControls, useGLTF, useProgress } from "@react-three/drei";
+import { useTheme } from "next-themes";
+import { Suspense, useMemo, useRef, useSyncExternalStore } from "react";
+import { CanvasTexture, type Group } from "three";
 
 const MODELS = {
   portal: "/models/portal.glb",
@@ -42,8 +43,53 @@ function Model({
   return <primitive object={scene} position={position} scale={scale} rotation={rotation} />;
 }
 
+
+const FLOOR_Y = -0.96;
+
+/** Soft-edged disc under the characters; colour follows the theme. */
+function Floor({ dark, animate }: { dark: boolean; animate: boolean }) {
+  // Radial alpha mask so the disc fades into the page instead of ending in a hard edge.
+  const alphaMap = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.15, size / 2, size / 2, size / 2);
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.7, "rgba(255,255,255,0.85)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    return new CanvasTexture(canvas);
+  }, []);
+
+  return (
+    <>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FLOOR_Y, 0]}>
+        <circleGeometry args={[2.6, 64]} />
+        <meshStandardMaterial
+          color={dark ? "#22343f" : "#d4ddcd"}
+          roughness={0.75}
+          metalness={0}
+          transparent
+          alphaMap={alphaMap}
+        />
+      </mesh>
+      <ContactShadows
+        position={[0, FLOOR_Y + 0.005, 0]}
+        scale={5.5}
+        blur={2.4}
+        far={2.4}
+        opacity={dark ? 0.9 : 0.55}
+        resolution={512}
+        frames={animate ? Infinity : 1}
+      />
+    </>
+  );
+}
+
 /** The whole composition slowly sways; the portal light breathes. */
-function Composition({ animate }: { animate: boolean }) {
+function Composition({ animate, dark }: { animate: boolean; dark: boolean }) {
   const group = useRef<Group>(null);
   const light = useRef<{ intensity: number }>(null);
 
@@ -55,14 +101,15 @@ function Composition({ animate }: { animate: boolean }) {
   });
 
   return (
-    <group ref={group} position={[0, -0.15, 0]}>
-      <Model url={MODELS.portal} position={[0, 0.12, -0.7]} scale={1.35} />
+    <group ref={group} position={[0, -0.1, 0]}>
+      <Floor dark={dark} animate={animate} />
+      <Model url={MODELS.portal} position={[0, 0.27, -0.7]} scale={1.3} />
       <pointLight ref={light} position={[0, 0.2, -0.2]} color="#97ce4c" intensity={6} distance={5} decay={2} />
 
-      <Float speed={animate ? 1.6 : 0} rotationIntensity={0.15} floatIntensity={0.35}>
+      <Float speed={animate ? 1.6 : 0} rotationIntensity={0.08} floatIntensity={0.12}>
         <Model url={MODELS.rick} position={[-0.92, 0, 0.2]} rotation={[0, 0.35, 0]} />
       </Float>
-      <Float speed={animate ? 1.9 : 0} rotationIntensity={0.15} floatIntensity={0.35}>
+      <Float speed={animate ? 1.9 : 0} rotationIntensity={0.08} floatIntensity={0.12}>
         <Model url={MODELS.morty} position={[0.92, -0.14, 0.2]} scale={0.85} rotation={[0, -0.35, 0]} />
       </Float>
     </group>
@@ -86,12 +133,14 @@ function LoadingOverlay() {
 
 export default function HeroScene() {
   const reduced = useReducedMotion();
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
 
   return (
     <div className="relative h-full w-full touch-none">
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 0.3, 4.8], fov: 34 }}
+        camera={{ position: [0, 0.75, 4.9], fov: 34 }}
         frameloop={reduced ? "demand" : "always"}
         gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
         aria-label="3D-сцена: Рик и Морти у портала"
@@ -110,7 +159,7 @@ export default function HeroScene() {
             azimuth={[-0.6, 0.6]}
             cursor
           >
-            <Composition animate={!reduced} />
+            <Composition animate={!reduced} dark={dark} />
           </PresentationControls>
         </Suspense>
       </Canvas>
